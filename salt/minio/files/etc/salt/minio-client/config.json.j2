@@ -1,0 +1,25 @@
+{%- if pillar.minio.api_port == 443 %}
+{%- set minio_host_port = grains.id %}
+{%- else %}
+{%- set minio_host_port = grains.id ~ ':' ~ pillar.minio.api_port %}
+{%- endif %}
+{
+	"version": "10",
+	"aliases": {
+		"local": {
+			"url": "https://{{ minio_host_port }}",
+			"accessKey": "{{ pillar.minio.environment.root_user }}",
+			"secretKey": "{{ pillar.minio.environment.root_password }}",
+			"api": "S3v4",
+			"path": "auto"
+		},
+		// TODO: maybe should just list all other machines
+		{{ grains.id }} {
+			"url": "https://{{ minio_host_port }}",
+			"accessKey": "{{ pillar.minio.environment.root_user }}",
+			"secretKey": "{{ pillar.minio.environment.root_password }}",
+			"api": "S3v4",
+			"path": "auto"
+		}
+	}
+}

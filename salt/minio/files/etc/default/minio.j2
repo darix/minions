@@ -1,0 +1,3 @@
+{%- for key,value in pillar.minio.environment.items() %}
+MINIO_{{ key|upper }}="{{ value }}"
+{%- endfor %}

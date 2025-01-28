@@ -1,0 +1,78 @@
+{%- set api_port = 9000 %}
+{%- set console_port = 9000 %}
+
+minio:
+  api_port:     {{ api_port }}
+  console_port: {{ console_port }}
+  environment:
+    root_user:     "minio"
+    root_password: {{ "somepass" | gopass }}
+    options:       "--console-address=0.0.0.0:{{ console_port }} --address=0.0.0.0:{{ api_port }}"
+    volumes:       "https://minio{1..3}.example.com:{{ api_port }}/var/lib/minio/clustered/{1..4}"
+
+  config:
+    key: value
+    key2:
+      - list
+      - list
+
+{%- set restic_hosts_for_buckets     = [ "fortress", "tron", "octane", "pdp11" ] %}
+{%- set pgbackrest_hosts_for_buckets = [ "fortress", "boxie" ] %}
+
+  policies:
+    {%- for hostname in pgbackrest_hosts_for_buckets %}
+    pgbackrest_{{ hostname }}_append_only:
+      type:          pgbackrest-append-only
+      bucket_name:   pgbackrest-{{ hostname }}
+      bucket_subdir: local
+
+    pgbackrest_{{ hostname }}_full_permissions:
+      type:          pgbackrest-full-permissions
+      bucket_name:   pgbackrest-{{ hostname }}
+      bucket_subdir: local
+    {%- endfor %}
+
+    {%- for hostname in restic_hosts_for_buckets %}
+    restic_{{ hostname }}_append_only:
+      type:          restic-append-only
+      bucket_name:   restic-{{ hostname }}
+
+    restic_{{ hostname }}_full_permissions:
+      type:          restic-full-permissions
+      bucket_name:   restic-{{ hostname }}
+    {%- endfor %}
+
+  users:
+    {%- for hostname in pgbackrest_hosts_for_buckets %}
+    pgbackrest_{{ hostname }}_append_only:
+      policies:
+        - pgbackrest_{{ hostname }}_append_only
+
+    pgbackrest_{{ hostname }}_full_permissions:
+      policies:
+        - pgbackrest_{{ hostname }}_full_permissions
+    {%- endfor %}
+
+    {%- for hostname in restic_hosts_for_buckets %}
+    restic_{{ hostname }}_append_only:
+      policies:
+        - restic_{{ hostname }}_append_only
+
+    restic_{{ hostname }}_full_permissions:
+      policies:
+        - restic_{{ hostname }}_full_permissions
+    {%- endfor %}
+
+  buckets:
+    {%- for hostname in pgbackrest_hosts_for_buckets %}
+    pgbackrest-{{ hostname }}:
+      settings:
+        - versioning: false
+        - locking: false
+        - quota: false
+    {%- endfor %}
+
+    {%- for hostname in restic_hosts_for_buckets %}
+    restic-{{ hostname}}: {}
+    {%- endfor %}
+
