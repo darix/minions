@@ -1,4 +1,9 @@
-import subprocess
+#
+# TODO: implement test mode - currently the code is always active
+#       see filetreedeployer for how Georg implemented it theres
+# TODO: implement proper result_data
+#
+
 import tempfile
 import os
 import logging
@@ -292,6 +297,7 @@ def bucket(name, data={}):
   found=mc.bucket_exists(name)
 
   if found:
+    # TODO: implement update mode for settings
     return_data["changes"]= {"what": f"Bucket {name} already there"}
   else:
     try:
@@ -315,6 +321,7 @@ def policy(name, data={}):
   policy_list = parse_json_string(ma.policy_list())
 
   if name in policy_list:
+    # TODO: implement update mode
     return_data["changes"]= {"what": f"Policy {name} already there"}
   else:
     if not data["type"] in policy_templates:
