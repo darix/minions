@@ -1,5 +1,5 @@
 {
-    "Version": "Version": "2012-10-17",
+    "Version": "2012-10-17",
     "Statement": [
         {
             "Effect": "Allow",
@@ -37,7 +37,7 @@
                 "s3:PutObjectTagging"
             ],
             "Resource": [
-                "arn:aws:s3:::{{ bucket_name }}/backup/{{ bucket_subdir }}/*"
+                "arn:aws:s3:::{{ bucket_name }}/backup/{{ bucket_subdir }}/*",
                 "arn:aws:s3:::{{ bucket_name }}/archive/{{ bucket_subdir }}/*"
             ]
         }
