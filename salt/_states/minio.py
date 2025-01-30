@@ -51,8 +51,10 @@ def run_dmc_to_json(args):
       mc_data, mc_error = "", str(e)
       mc_returncode = 1
 
-  if mc_returncode:
-    raise SaltRenderError(f"Running {cmd} failed. Please check the log.")
+  # unlike in our gopass tool we can not just raise here. The real raise has to happen in the specific function
+  # that called us and knows how to handle the specific error
+  # if mc_returncode:
+  #   raise SaltRenderError(f"Running {cmd} failed. Please check the log.")
 
   if not mc_data:
     return_data={}
