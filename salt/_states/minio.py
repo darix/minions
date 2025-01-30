@@ -13,7 +13,6 @@ salt_minion_alias       = "salt"
 
 from subprocess import PIPE, Popen
 from salt.exceptions import SaltConfigurationError, SaltRenderError
-import salt.utils.json
 from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
