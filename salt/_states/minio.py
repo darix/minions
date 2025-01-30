@@ -20,6 +20,165 @@ log = logging.getLogger(__name__)
 cmdenv = os.environ.copy()
 instance_name = "devel"
 
+policy_templates = {
+"pgbackrest-append-only": """
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%"
+            ],
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": [
+                        "archive/local/*",
+                        "backup/local/*"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%/backup/%%bucket_subdir%%/latest"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObjectTagging",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%/archive/%%bucket_subdir%%/*",
+                "arn:aws:s3:::%%bucket_name%%/backup/%%bucket_subdir%%/*"
+            ]
+        }
+    ]
+}""",
+
+"pgbackrest-full-permissions": """
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::pgbackrest"
+            ],
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": [
+                        "backup/%%bucket_subdir%%/*",
+                        "archive/%%bucket_subdir%%/*"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:DeleteObject",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:PutObject",
+                "s3:PutObjectTagging"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%/backup/%%bucket_subdir%%/*",
+                "arn:aws:s3:::%%bucket_name%%/archive/%%bucket_subdir%%/*"
+            ]
+        }
+    ]
+}""",
+"restic-append-only": """
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": "arn:aws:s3:::%%bucket_name%%/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:DeleteObject",
+            "Resource": "arn:aws:s3:::%%bucket_name%%/locks/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:GetBucketLocation",
+                "s3:ListBucket"
+            ],
+            "Resource": "arn:aws:s3:::%%bucket_name%%"
+        }
+    ]
+}""",
+"restic-full-permissions": """
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::%%bucket_name%%"
+            ]
+        }
+    ]
+}""",
+}
+
 """
 root@fortress /srv/cfgmgmt # /usr/bin/minio-client --config-dir /etc/salt/minio-client/ --json --no-color --disable-pager mb devel/restic_pdp11 ; echo $?
 {
