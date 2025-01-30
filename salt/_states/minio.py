@@ -309,7 +309,34 @@ def bucket(name, data={}):
   return return_data
 
 def policy(name, data={}):
-  return {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+
+  ma = minio_admin()
+  policy_list = parse_json_string(ma.policy_list())
+
+  if name in policy_list:
+    return_data["changes"]= {"what": f"Policy {name} already there"}
+  else:
+    if not data["type"] in policy_templates:
+      raise SaltConfigurationError(f'No template for policy type {data["type"]}')
+    template=policy_templates[data["type"]]
+    with tempfile.NamedTemporaryFile(mode="w+", encoding='utf-8', delete=False) as policy_file:
+      try:
+        policy_string=template
+        for k,v in data.items():
+          policy_string=policy_string.replace(f"%%{k}%%", v)
+        policy_file.write(policy_string)
+        policy_file.close()
+        ma.policy_add(name, policy_file.name)
+      except (minio.error.MinioAdminException) as e:
+        log.error(f"Adding policy {name} failed: {e} {policy_string}")
+        raise
+      finally:
+        os.remove(policy_file.name)
+
+    return_data["changes"]= {"what": f"Policy {name} is missing"}
+
+  return return_data
 
 def user(name, data={}):
   return {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
