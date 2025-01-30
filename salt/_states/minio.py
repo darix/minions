@@ -287,17 +287,9 @@ def site_config(name, config={}):
 
 def bucket(name, data={}):
   return_data = {'name': name, 'result': True, 'changes': {"muahah": "wooohoo"}, 'comment': "darix was here"}
+
   mc = minio_client()
-
-  bucket_list = mc.list_buckets()
-
-  found=False
-
-  for bucket in bucket_list:
-    log.error(f"Checking {name} against {bucket.name}")
-    if bucket.name == name:
-      found=True
-      break
+  found=mc.bucket_exists(name)
 
   if found:
     return_data["changes"]= {"what": f"Bucket {name} already there"}
