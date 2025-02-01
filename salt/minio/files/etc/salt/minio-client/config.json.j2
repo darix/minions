@@ -6,6 +6,13 @@
 {
 	"version": "10",
 	"aliases": {
+		"salt": {
+			"url": "https://{{ minio_host_port }}",
+			"accessKey": "{{ pillar.minio.environment.root_user }}",
+			"secretKey": "{{ pillar.minio.environment.root_password }}",
+			"api": "S3v4",
+			"path": "auto"
+		},
 		"local": {
 			"url": "https://{{ minio_host_port }}",
 			"accessKey": "{{ pillar.minio.environment.root_user }}",
