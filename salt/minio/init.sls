@@ -58,53 +58,53 @@ def run():
       ]
     }
 
-  minio_settings_deps = ["salt_minio_client_config", "minio_service"]
-  policies_list = []
-  policies_state_list = []
-  if "policies" in minio_pillar:
-    for policy_name, policy_data in minio_pillar["policies"].items():
+    minio_settings_deps = ["salt_minio_client_config", "minio_service"]
+    policies_list = []
+    policies_state_list = []
+    if "policies" in minio_pillar:
+      for policy_name, policy_data in minio_pillar["policies"].items():
 
-      policy_state = f"minio_policy_{policy_name}"
+        policy_state = f"minio_policy_{policy_name}"
 
-      policies_list.append(policy_name)
-      policies_state_list.append(policy_state)
+        policies_list.append(policy_name)
+        policies_state_list.append(policy_state)
 
-      config[policy_state] = {
-        "minio.policy": [
-          {"name": policy_name},
-          {"data": policy_data},
-          {"require": minio_settings_deps},
-        ]
-      }
+        config[policy_state] = {
+          "minio.policy": [
+            {"name": policy_name},
+            {"data": policy_data},
+            {"require": minio_settings_deps},
+          ]
+        }
 
-  if "users" in minio_pillar:
-    for user_name, user_data in minio_pillar["users"].items():
-      if not("policies" in user_data):
-          raise SaltConfigurationError(f"No policies assigned to user {user_name}")
+    if "users" in minio_pillar:
+      for user_name, user_data in minio_pillar["users"].items():
+        if not("policies" in user_data):
+            raise SaltConfigurationError(f"No policies assigned to user {user_name}")
 
-      policies = user_data["policies"]
-      for policy in policies:
-        if not(policy in policies_list):
-          raise SaltConfigurationError(f"Policy {policy} assigned to user {user_name} does not exists")
+        policies = user_data["policies"]
+        for policy in policies:
+          if not(policy in policies_list):
+            raise SaltConfigurationError(f"Policy {policy} assigned to user {user_name} does not exists")
 
-      user_policy_deps = [f"minio_policy_{x}" for x in user_data["policies"]]
-      user_policy_deps.extend(minio_settings_deps)
-      config[f"minio_user_{user_name}"] = {
-        "minio.user": [
-          {"name":    user_name},
-          {"data":    user_data},
-          {"require": user_policy_deps},
-        ]
-      }
+        user_policy_deps = [f"minio_policy_{x}" for x in user_data["policies"]]
+        user_policy_deps.extend(minio_settings_deps)
+        config[f"minio_user_{user_name}"] = {
+          "minio.user": [
+            {"name":    user_name},
+            {"data":    user_data},
+            {"require": user_policy_deps},
+          ]
+        }
 
-  if "buckets" in minio_pillar:
-    for bucket_name, bucket_data in minio_pillar["buckets"].items():
-      config[f"minio_bucket_{bucket_name}"] = {
-        "minio.bucket": [
-          {"name": bucket_name},
-          {"data": bucket_data},
-          {"require": minio_settings_deps}
-        ]
-      }
+    if "buckets" in minio_pillar:
+      for bucket_name, bucket_data in minio_pillar["buckets"].items():
+        config[f"minio_bucket_{bucket_name}"] = {
+          "minio.bucket": [
+            {"name": bucket_name},
+            {"data": bucket_data},
+            {"require": minio_settings_deps}
+          ]
+        }
 
   return config
