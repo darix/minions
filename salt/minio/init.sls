@@ -58,6 +58,7 @@ def run():
       ]
     }
 
+  minio_settings_deps = ["salt_minio_client_config", "minio_service"]
   policies_list = []
   policies_state_list = []
   if "policies" in minio_pillar:
@@ -72,6 +73,7 @@ def run():
         "minio.policy": [
           {"name": policy_name},
           {"data": policy_data},
+          {"require": minio_settings_deps},
         ]
       }
 
@@ -86,6 +88,7 @@ def run():
           raise SaltConfigurationError(f"Policy {policy} assigned to user {user_name} does not exists")
 
       user_policy_deps = [f"minio_policy_{x}" for x in user_data["policies"]]
+      user_policy_deps.extend(minio_settings_deps)
       config[f"minio_user_{user_name}"] = {
         "minio.user": [
           {"name":    user_name},
@@ -100,6 +103,7 @@ def run():
         "minio.bucket": [
           {"name": bucket_name},
           {"data": bucket_data},
+          {"require": minio_settings_deps}
         ]
       }
 
