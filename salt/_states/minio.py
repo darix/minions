@@ -185,59 +185,6 @@ __policy_templates = {
 }""",
 }
 
-"""
-root@fortress /srv/cfgmgmt # /usr/bin/minio-client --config-dir /etc/salt/minio-client/ --json --no-color --disable-pager mb devel/restic_pdp11 ; echo $?
-{
- "status": "error",
- "error": {
-  "message": "Unable to make bucket `devel/restic_pdp11`.",
-  "cause": {
-   "message": "Bucket name contains invalid characters",
-   "error": {}
-  },
-  "type": "error"
- }
-}
-1
-root@fortress /srv/cfgmgmt # /usr/bin/minio-client --config-dir /etc/salt/minio-client/ --json --no-color --disable-pager mb devel/restic-pdp11 ; echo $?
-{
- "status": "success",
- "bucket": "devel/restic-pdp11",
- "region": ""
-}
-0
-"""
-
-
-def __run_dmc_to_json(args):
-  cmd = [minion_client_binary, "--config-dir", salt_minion_config_dir, "--json", "--no-color", "--disable-pager"]
-  cmd.extend(args)
-  try:
-    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=__cmdenv, encoding="utf-8")
-    mc_data, mc_error = proc.communicate()
-    mc_returncode = proc.returncode
-  except (OSError, UnicodeDecodeError) as e:
-    mc_data, mc_error = "", str(e)
-    mc_returncode = 1
-
-  # unlike in our gopass tool we can not just raise here. The real raise has to happen in the specific function
-  # that called us and knows how to handle the specific error
-  # if mc_returncode:
-  #   raise SaltRenderError(f"Running {cmd} failed. Please check the log.")
-
-  if not mc_data:
-    return_data = {}
-  else:
-    # TODO: error handling
-    try:
-      return_data = json.loads(mc_data)
-    except (json.decoder.JSONDecodeError) as e:
-      message = f"Failed to parse output from {' '.join(cmd)}: {mc_data}"
-      log.error(message)
-      raise SaltRenderError(message)
-
-  return mc_returncode, return_data
-
 
 def __parse_json_string(data):
   try:
