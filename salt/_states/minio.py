@@ -365,9 +365,15 @@ def _existing_service_account(current_sacct_list, account_data):
       return True
   return False
 
+
 def _verify_service_account(return_data, account_data):
   parsed_data = __parse_json_string(return_data)
   return (parsed_data["credentials"]["accessKey"] == account_data["access_key"] and parsed_data["credentials"]["secretKey"] == account_data["secret_key"])
+
+
+def _verify_user_exists(name, ma):
+  user_list = __parse_json_string(ma.user_list())
+  return(name in user_list)
 
 def user_present(name, data={}):
   return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
@@ -383,8 +389,12 @@ def user_present(name, data={}):
     user_data = {}
     if not ("password" in data):
       raise SaltConfigurationError(f"missing password for user '{name}'")
-    if ma.user_add(name, data["password"]):
+    ma.user_add(name, data["password"])
+    if _verify_user_exists(name, ma):
       return_data["changes"]["user"] = f"User '{name}' already created"
+    else:
+      raise SaltRenderError(f"Something went wrong when trying to create user {name}")
+
   if "policies" in data:
     new_policies = data["policies"]
     if "policyName" in user_data:
@@ -394,17 +404,17 @@ def user_present(name, data={}):
         return_data["changes"]["policies"] = f"Policies {','.join(data['policies'])} attached to user '{name}'"
     else:
       return_data["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
+
   if "service_accounts" in data:
     current_sacct_list = _get_existing_service_accounts(ma, name)
     for account_name, account_data in data["service_accounts"].items():
       if not ("access_key" in account_data and "secret_key" in account_data):
         raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
+
       if _existing_service_account(current_sacct_list, account_data):
-        return_data["changes"][
-          f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
+        return_data["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
       else:
         rd = ma.add_service_account(access_key=account_data['access_key'], secret_key=account_data['secret_key'], name=account_name, targetUser=name)
-        log.error(f"add service account rd {rd}")
         if _verify_service_account(rd, account_data):
           return_data["changes"][f"svsacct_{account_name}"] = f"Created service account {account_name} for user {name}"
         else:
