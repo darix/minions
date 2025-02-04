@@ -10,6 +10,7 @@ import os
 import random
 import string
 import tempfile
+import re
 
 import minio as pyminio
 
@@ -233,19 +234,53 @@ def __minio_admin():
   netloc, parsed_config = __minio_config()
   return pyminio.MinioAdmin(endpoint=netloc, credentials=__minio_credentials())
 
+def _parse_site_setting(input_string):
+  section_name, section_data_string = input_string.split(' ', 1)
+  settings = {}
+  is_value = False
+  key = None
+  r=re.compile(r'\s*(?P<config_option>\S+)=(?P<config_value>".*?"|\S+)\s*')
+  fields=r.split(section_data_string)
+  for chunk in fields:
+    if chunk == '':
+      continue
+    if is_value:
+      settings[key] = chunk
+      is_value = False
+    else:
+      key = chunk
+      is_value = True
+  return section_name, settings
 
-def site_config(name, config={}):
-  # config_array = []
 
-  # for key, value config.items():
-  #   if value is String:
-  #     final_value = value
-  #   else:
-  #     final_value = "".join(value)
+def _is_site_config_set(ma, section_name, section_data):
+   set_section_name, set_section_data = _parse_site_setting(ma.config_get(section_name))
+   for k, v in section_data.items():
+     try:
+       if set_section_data[k] != v:
+         return False
+     except KeyError as e:
+       pass
+   return True
 
-  #   config_array.append(f"{key}={final_value}")
-  #   cmd [minion_client_binary]
-  return {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+
+def site_config(name):
+  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  if "minio" in __pillar__ and "config" in __pillar__["minio"]:
+    ma = __minio_admin()
+
+    for section_name, section_data in __pillar__["minio"]["config"].items():
+      try:
+        ma.config_set(section_name, section_data)
+        if _is_site_config_set(ma, section_name, section_data):
+          return_data["changes"][f"site_setting_{section_name}"] = f"successfully set settings for {section_name}"
+      except pyminio.error.MinioAdminException as e:
+        exception_data = __parse_json_string(e._body)
+        message = exception_data["Message"]
+        return_data["changes"][f"site_setting_{section_name}"] = f"Failed to set all settings for {section_name}: {message}"
+
+
+  return return_data
 
 
 def bucket_present(name, data={}):

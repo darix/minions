@@ -59,7 +59,16 @@ def run():
       ]
     }
 
+
     minio_settings_deps = ["salt_minio_client_config", "minio_service"]
+
+    if "config" in minio_pillar:
+      config["deploy_site_config"] = {
+        "minio.site_config": [
+          {"require": minio_settings_deps},
+        ]
+      }
+
     policies_list = []
     policies_state_list = []
     if "policies" in minio_pillar:
