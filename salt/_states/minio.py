@@ -363,6 +363,19 @@ def user_present(name, data={}):
          for account_name, account_data in data["service_accounts"].items():
            if not("access_key" in account_data and "secret_key" in account_data):
              raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
+           # TODO:
+           # this does not actually set up a service account per user:
+           # https://github.com/minio/minio-py/issues/1481
+           # mc --disable-pager admin user svcacct list local mimir
+           # mc --disable-pager admin user svcacct add local mimir --access-key=fooooofooooo --secret-key=baaaarbaaaar --name foobar
+           #    --access-key value            set an access key for the service account
+           #    --secret-key value            set a secret key for the service account
+           #    --policy value                path to a JSON policy file
+           #    --name value                  friendly name for the service account
+           #    --description value           description for the service account
+           #    --expiry value                time of expiration for the service account
+           # TODO: should we have autorotation?
+           #
            ma.add_service_account(access_key=account_data["access_key"], secret_key=account_data["secret_key"], name=account_name)
 
   return return_data
