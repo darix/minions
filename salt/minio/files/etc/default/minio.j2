@@ -1,3 +1,5 @@
+{%- if "environment" in pillar.minio %}
 {%- for key,value in pillar.minio.environment.items() %}
 MINIO_{{ key|upper }}="{{ value }}"
 {%- endfor %}
+{%- endif %}
