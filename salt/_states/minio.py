@@ -22,10 +22,9 @@ from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
-cmdenv = os.environ.copy()
-instance_name = "devel"
+__cmdenv = os.environ.copy()
 
-policy_templates = {
+__policy_templates = {
 "pgbackrest-append-only": """
 {
     "Version": "2012-10-17",
@@ -207,11 +206,11 @@ root@fortress /srv/cfgmgmt # /usr/bin/minio-client --config-dir /etc/salt/minio-
 0
 """
 
-def run_dmc_to_json(args):
+def __run_dmc_to_json(args):
   cmd=[minion_client_binary, "--config-dir", salt_minion_config_dir, "--json", "--no-color", "--disable-pager"]
   cmd.extend(args)
   try:
-      proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=cmdenv, encoding="utf-8")
+      proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=__cmdenv, encoding="utf-8")
       mc_data, mc_error = proc.communicate()
       mc_returncode = proc.returncode
   except (OSError, UnicodeDecodeError) as e:
@@ -236,7 +235,7 @@ def run_dmc_to_json(args):
 
   return mc_returncode, return_data
 
-def parse_json_string(data):
+def __parse_json_string(data):
     try:
       log.error(f"class: {data.__class__()} data: {data}")
       return_data=json.loads(data)
@@ -246,7 +245,7 @@ def parse_json_string(data):
       log.error(message)
       raise SaltRenderError(message)
 
-def parse_json_file(filename):
+def __parse_json_file(filename):
     try:
       return_data=json.load(open(filename))
       return return_data
@@ -255,11 +254,11 @@ def parse_json_file(filename):
       log.error(message)
       raise SaltRenderError(message)
 
-def minio_credentials():
+def __minio_credentials():
   return minio.credentials.MinioClientConfigProvider(salt_minion_config_file, alias=salt_minion_alias)
 
-def minio_config():
-  parsed_config = parse_json_file(salt_minion_config_file)
+def __minio_config():
+  parsed_config = __parse_json_file(salt_minion_config_file)
   if not("aliases" in parsed_config and salt_minion_alias in parsed_config["aliases"] and "url" in parsed_config["aliases"][salt_minion_alias]):
       messsage = f"Can not find alias {salt_minion_alias} in {salt_minion_config_file}"
       log.error(message)
@@ -269,13 +268,13 @@ def minio_config():
   netloc = urlparse(url).netloc
   return netloc, parsed_config
 
-def minio_client():
-  netloc, parsed_config = minio_config()
-  return minio.Minio(endpoint=netloc, credentials=minio_credentials())
+def __minio_client():
+  netloc, parsed_config = __minio_config()
+  return minio.Minio(endpoint=netloc, credentials=__minio_credentials())
 
-def minio_admin():
-  netloc, parsed_config = minio_config()
-  return minio.MinioAdmin(endpoint=netloc, credentials=minio_credentials())
+def __minio_admin():
+  netloc, parsed_config = __minio_config()
+  return minio.MinioAdmin(endpoint=netloc, credentials=__minio_credentials())
 
 def site_config(name, config={}):
   # config_array = []
@@ -290,10 +289,10 @@ def site_config(name, config={}):
   #   cmd [minion_client_binary]
   return {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
 
-def bucket(name, data={}):
+def bucket_present(name, data={}):
   return_data = {'name': name, 'result': True, 'changes': {"muahah": "wooohoo"}, 'comment': "darix was here"}
 
-  mc = minio_client()
+  mc = __minio_client()
   found=mc.bucket_exists(name)
 
   if found:
@@ -314,19 +313,19 @@ def bucket(name, data={}):
 
   return return_data
 
-def policy(name, data={}):
+def policy_present(name, data={}):
   return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
 
-  ma = minio_admin()
-  policy_list = parse_json_string(ma.policy_list())
+  ma = __minio_admin()
+  policy_list = __parse_json_string(ma.policy_list())
 
   if name in policy_list:
     # TODO: implement update mode
     return_data["changes"]= {"what": f"Policy {name} already there"}
   else:
-    if not data["type"] in policy_templates:
+    if not data["type"] in __policy_templates:
       raise SaltConfigurationError(f'No template for policy type {data["type"]}')
-    template=policy_templates[data["type"]]
+    template=__policy_templates[data["type"]]
     with tempfile.NamedTemporaryFile(mode="w+", encoding='utf-8', delete=False) as policy_file:
       try:
         policy_string=template
@@ -345,5 +344,25 @@ def policy(name, data={}):
 
   return return_data
 
-def user(name, data={}):
-  return {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+def user_present(name, data={}):
+  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+
+  ma = __minio_admin()
+  user_list = ma.user_list()
+
+  if name in user_list:
+    # TODO: implement update mode
+    return_data["changes"]= {"what": f"User '{name}' already there"}
+  else:
+    if not("password" in data):
+      raise SaltConfigurationError(f"missing password for user '{name}'")
+    ma.user_add(name, data["password"])
+    if "policies" in data:
+      ma.attach_policy(policies=data["policies"], user=name)
+      if "service_accounts" in data:
+         for account_name, account_data in data["service_accounts"].items():
+           if not("access_key" in account_data and "secret_key" in account_data):
+             raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
+           ma.add_service_account(access_key=account_data["access_key"], secret_key=account_data["secret_key"], name=account_name)
+
+  return return_data
