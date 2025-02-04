@@ -374,6 +374,9 @@ def user_missing(name):
     ma.user_remove(name)
     return_data["changes"]= {"what": f"User '{name}' removed"}
   except (pyminio.error.MinioAdminException) as e:
-    return_data["changes"]= {"what": f"User '{name}' already missing"}
+    if e._code == '404':
+        return_data["changes"]= {"what": f"User '{name}' already missing"}
+    else:
+      raise e
 
   return return_data
