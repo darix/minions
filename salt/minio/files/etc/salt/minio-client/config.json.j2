@@ -20,8 +20,7 @@
 			"api": "S3v4",
 			"path": "auto"
 		},
-		// TODO: maybe should just list all other machines
-		{{ grains.id }} {
+		"{{ grains.id }}": {
 			"url": "https://{{ minio_host_port }}",
 			"accessKey": "{{ pillar.minio.environment.root_user }}",
 			"secretKey": "{{ pillar.minio.environment.root_password }}",
