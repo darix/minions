@@ -48,11 +48,12 @@ def run():
     }
 
     config["salt_minio_client_config"] = {
-      "file.directory": [
+      "file.managed": [
         {"name": "/etc/salt/minio-client/config.json"},
         {"user": "root"},
         {"group": "salt"},
         {"mode": "0640"},
+        {"template": "jinja"},
         {"require": ["salt_minio_client_config_dir"] },
         {"source": "salt://minio/files/etc/salt/minio-client/config.json.j2"},
       ]
@@ -70,7 +71,7 @@ def run():
         policies_state_list.append(policy_state)
 
         config[policy_state] = {
-          "minio.policy": [
+          "minio.policy_present": [
             {"name": policy_name},
             {"data": policy_data},
             {"require": minio_settings_deps},
@@ -90,7 +91,7 @@ def run():
         user_policy_deps = [f"minio_policy_{x}" for x in user_data["policies"]]
         user_policy_deps.extend(minio_settings_deps)
         config[f"minio_user_{user_name}"] = {
-          "minio.user": [
+          "minio.user_present": [
             {"name":    user_name},
             {"data":    user_data},
             {"require": user_policy_deps},
@@ -100,7 +101,7 @@ def run():
     if "buckets" in minio_pillar:
       for bucket_name, bucket_data in minio_pillar["buckets"].items():
         config[f"minio_bucket_{bucket_name}"] = {
-          "minio.bucket": [
+          "minio.bucket_present": [
             {"name": bucket_name},
             {"data": bucket_data},
             {"require": minio_settings_deps}
