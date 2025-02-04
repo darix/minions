@@ -313,6 +313,20 @@ def bucket_present(name, data={}):
 
   return return_data
 
+def bucket_missing(name):
+  return_data = {'name': name, 'result': True, 'changes': {"muahah": "wooohoo"}, 'comment': "darix was here"}
+
+  mc = __minio_client()
+  found=mc.bucket_exists(name)
+
+  if found:
+    mc.remove_bucket(name)
+    return_data["changes"]= {"what": f"Bucket {name} removed"}
+  else:
+    return_data["changes"]= {"what": f"Bucket {name} already missing"}
+
+  return return_data
+
 def policy_present(name, data={}):
   return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
 
@@ -341,6 +355,20 @@ def policy_present(name, data={}):
         os.remove(policy_file.name)
 
     return_data["changes"]= {"what": f"Policy {name} is missing"}
+
+  return return_data
+
+def policy_missing(name):
+  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+
+  ma = __minio_admin()
+  policy_list = __parse_json_string(ma.policy_list())
+
+  if name in policy_list:
+    ma.policy_remove(name)
+    return_data["changes"]= {"what": f"Policy {name} removed"}
+  else:
+    return_data["changes"]= {"what": f"Policy {name} is already missing"}
 
   return return_data
 
