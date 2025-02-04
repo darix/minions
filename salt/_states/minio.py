@@ -8,7 +8,7 @@ import tempfile
 import os
 import logging
 import json
-import minio
+import minio as pyminio
 
 
 minion_client_binary   = "/usr/bin/minio-client"
@@ -255,7 +255,7 @@ def __parse_json_file(filename):
       raise SaltRenderError(message)
 
 def __minio_credentials():
-  return minio.credentials.MinioClientConfigProvider(salt_minion_config_file, alias=salt_minion_alias)
+  return pyminio.credentials.MinioClientConfigProvider(salt_minion_config_file, alias=salt_minion_alias)
 
 def __minio_config():
   parsed_config = __parse_json_file(salt_minion_config_file)
@@ -270,11 +270,11 @@ def __minio_config():
 
 def __minio_client():
   netloc, parsed_config = __minio_config()
-  return minio.Minio(endpoint=netloc, credentials=__minio_credentials())
+  return pyminio.Minio(endpoint=netloc, credentials=__minio_credentials())
 
 def __minio_admin():
   netloc, parsed_config = __minio_config()
-  return minio.MinioAdmin(endpoint=netloc, credentials=__minio_credentials())
+  return pyminio.MinioAdmin(endpoint=netloc, credentials=__minio_credentials())
 
 def site_config(name, config={}):
   # config_array = []
@@ -334,7 +334,7 @@ def policy_present(name, data={}):
         policy_file.write(policy_string)
         policy_file.close()
         ma.policy_add(name, policy_file.name)
-      except (minio.error.MinioAdminException) as e:
+      except (pyminio.error.MinioAdminException) as e:
         log.error(f"Adding policy {name} failed: {e} {policy_string}")
         raise
       finally:
@@ -364,5 +364,16 @@ def user_present(name, data={}):
            if not("access_key" in account_data and "secret_key" in account_data):
              raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
            ma.add_service_account(access_key=account_data["access_key"], secret_key=account_data["secret_key"], name=account_name)
+
+  return return_data
+
+def user_missing(name):
+  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  ma = __minio_admin()
+  try:
+    ma.user_remove(name)
+    return_data["changes"]= {"what": f"User '{name}' removed"}
+  except (pyminio.error.MinioAdminException) as e:
+    return_data["changes"]= {"what": f"User '{name}' already missing"}
 
   return return_data
