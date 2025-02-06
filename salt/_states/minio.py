@@ -14,14 +14,15 @@ import re
 
 import minio as pyminio
 
+from salt.exceptions import SaltConfigurationError, SaltRenderError
+from urllib.parse import urlparse
+
+
 minion_client_binary    = "/usr/bin/minio-client"
 salt_minion_config_dir  = "/etc/salt/minio-client/"
 salt_minion_config_file = f"{salt_minion_config_dir}/config.json"
 salt_minion_alias       = "salt"
 
-from subprocess import PIPE, Popen
-from salt.exceptions import SaltConfigurationError, SaltRenderError
-from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
