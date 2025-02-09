@@ -217,7 +217,7 @@ def __minio_config():
   parsed_config = __parse_json_file(salt_minion_config_file)
   if not ("aliases" in parsed_config and salt_minion_alias in parsed_config["aliases"] and "url" in
           parsed_config["aliases"][salt_minion_alias]):
-    messsage = f"Can not find alias {salt_minion_alias} in {salt_minion_config_file}"
+    message = f"Can not find alias {salt_minion_alias} in {salt_minion_config_file}"
     log.error(message)
     raise SaltConfigurationError(message)
 
@@ -372,7 +372,7 @@ def policy_missing(name):
 
 
 def _gimme_random_string(length=20):
-  return (''.join(random.choices(string.ascii_letters + string.digits, k=length)))
+  return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def _filter_existing_policies(current_policies_string, new_policies_list=[]):
@@ -388,7 +388,7 @@ def _get_existing_service_accounts(ma, name):
   current_sacct_list = []
   if "accounts" in parsed_json:
     current_sacct_list = parsed_json["accounts"]
-    if current_sacct_list == None:
+    if current_sacct_list is None:
       current_sacct_list = []
   else:
     raise SaltConfigurationError(f"No idea how to parse the list of current service accounts: {parsed_json}")
