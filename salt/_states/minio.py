@@ -385,19 +385,18 @@ def _filter_existing_policies(current_policies_string, new_policies_list=[]):
 
 def _get_existing_service_accounts(ma, name):
   parsed_json = __parse_json_string(ma.list_service_account(name))
-  current_sacct_list = []
   if "accounts" in parsed_json:
-    current_sacct_list = parsed_json["accounts"]
-    if current_sacct_list is None:
-      current_sacct_list = []
+    current_service_account_list = parsed_json["accounts"]
+    if current_service_account_list is None:
+      current_service_account_list = []
   else:
     raise SaltConfigurationError(f"No idea how to parse the list of current service accounts: {parsed_json}")
-  return current_sacct_list
+  return current_service_account_list
 
 
-def _existing_service_account(current_sacct_list, account_data):
-  for current_sacct in current_sacct_list:
-    if current_sacct["accessKey"] == account_data["access_key"]:
+def _existing_service_account(current_service_account_list, account_data):
+  for current_service_account in current_service_account_list:
+    if current_service_account["accessKey"] == account_data["access_key"]:
       return True
   return False
 
@@ -442,12 +441,12 @@ def user_present(name, data={}):
       return_data["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
 
   if "service_accounts" in data:
-    current_sacct_list = _get_existing_service_accounts(ma, name)
+    current_service_account_list = _get_existing_service_accounts(ma, name)
     for account_name, account_data in data["service_accounts"].items():
       if not ("access_key" in account_data and "secret_key" in account_data):
         raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
 
-      if _existing_service_account(current_sacct_list, account_data):
+      if _existing_service_account(current_service_account_list, account_data):
         return_data["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
       else:
         rd = ma.add_service_account(access_key=account_data['access_key'], secret_key=account_data['secret_key'], name=account_name, targetUser=name)
