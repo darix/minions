@@ -266,7 +266,7 @@ def _is_site_config_set(ma, section_name, section_data):
 
 
 def site_config(name):
-  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
   if "minio" in __pillar__ and "config" in __pillar__["minio"]:
     ma = __minio_admin()
 
@@ -278,6 +278,7 @@ def site_config(name):
       except pyminio.error.MinioAdminException as e:
         exception_data = __parse_json_string(e._body)
         message = exception_data["Message"]
+        return_data["result"] = False
         return_data["changes"][f"site_setting_{section_name}"] = f"Failed to set all settings for {section_name}: {message}"
 
 
@@ -285,7 +286,7 @@ def site_config(name):
 
 
 def bucket_present(name, data={}):
-  return_data = {'name': name, 'result': True, 'changes': {"muahah": "wooohoo"}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None,  'changes': {},  'comment': ""}
 
   mc = __minio_client()
   found = mc.bucket_exists(name)
@@ -310,7 +311,7 @@ def bucket_present(name, data={}):
 
 
 def bucket_missing(name):
-  return_data = {'name': name, 'result': True, 'changes': {"muahah": "wooohoo"}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None,  'changes': {},  'comment': ""}
 
   mc = __minio_client()
   found = mc.bucket_exists(name)
@@ -325,7 +326,7 @@ def bucket_missing(name):
 
 
 def policy_present(name, data={}):
-  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
 
   ma = __minio_admin()
   policy_list = __parse_json_string(ma.policy_list())
@@ -357,7 +358,7 @@ def policy_present(name, data={}):
 
 
 def policy_missing(name):
-  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
 
   ma = __minio_admin()
   policy_list = __parse_json_string(ma.policy_list())
@@ -411,7 +412,7 @@ def _verify_user_exists(name, ma):
   return(name in user_list)
 
 def user_present(name, data={}):
-  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
 
   ma = __minio_admin()
   user_list = __parse_json_string(ma.user_list())
@@ -459,7 +460,7 @@ def user_present(name, data={}):
 
 
 def user_missing(name):
-  return_data = {'name': name, 'result': True, 'changes': {}, 'comment': "darix was here"}
+  return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
   ma = __minio_admin()
   try:
     ma.user_remove(name)
