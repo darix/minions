@@ -426,16 +426,16 @@ def _get_existing_service_accounts(ma, name):
   return current_service_account_list
 
 
-def _existing_service_account(current_service_account_list, account_data):
+def _existing_service_account(current_service_account_list, access_key):
   for current_service_account in current_service_account_list:
-    if current_service_account["accessKey"] == account_data["access_key"]:
+    if current_service_account["accessKey"] == access_key:
       return True
   return False
 
 
-def _verify_service_account(ret, account_data):
+def _verify_service_account(ret, access_key, secret_key):
   parsed_data = __parse_json_string(ret)
-  return (parsed_data["credentials"]["accessKey"] == account_data["access_key"] and parsed_data["credentials"]["secretKey"] == account_data["secret_key"])
+  return (parsed_data["credentials"]["accessKey"] == access_key and parsed_data["credentials"]["secretKey"] == secret_key)
 
 
 def _verify_user_exists(name, ma):
@@ -443,7 +443,7 @@ def _verify_user_exists(name, ma):
   return (name in user_list)
 
 
-def user_present(name, data={}):
+def user_present(name, password):
   ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   ma = __minio_admin()
@@ -453,15 +453,11 @@ def user_present(name, data={}):
     # TODO: implement update mode
     ret["result"] = True
     ret["comment"] = f"User '{name}' already there"
-    user_data = user_list[name]
   else:
-    user_data = {}
-    if not ("password" in data):
-      raise SaltConfigurationError(f"missing password for user '{name}'")
     if __opts__["test"]:
       ret["comment"] = f"User '{name}' would be created"
     else:
-      ma.user_add(name, data["password"])
+      ma.user_add(name, password)
       if _verify_user_exists(name, ma):
         ret["result"] = True
         ret["changes"]["user"] = f"User '{name}' already created"
@@ -470,41 +466,52 @@ def user_present(name, data={}):
         ret["comment"] = f"Something went wrong when trying to create user {name}"
         return ret
 
-  if "policies" in data:
-    new_policies = data["policies"]
-    if "policyName" in user_data:
-      new_policies = _filter_existing_policies(user_data["policyName"], new_policies)
-    if len(new_policies) > 0:
-      if __opts__["test"]:
-        ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} would be attached to user '{name}'"
-      else:
-        if ma.attach_policy(policies=new_policies, user=name):
-          ret["result"] = True and ret["result"]
-          ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} attached to user '{name}'"
+  return ret
+
+
+def user_policies_present(name, username, assigned_policies=[]):
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ma = __minio_admin()
+  user_list = __parse_json_string(ma.user_list())
+  user_data = user_list[username]
+
+  new_policies = assigned_policies
+  if "policyName" in user_data:
+    new_policies = _filter_existing_policies(user_data["policyName"], new_policies)
+
+  if len(new_policies) > 0:
+    if __opts__["test"]:
+      ret["changes"]["policies"] = f"Policies {','.join(assigned_policies)} would be attached to user '{username}'"
     else:
-      ret["result"] = True and ret["result"]
-      ret["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
+      if ma.attach_policy(policies=new_policies, user=username):
+        ret["result"] = True
+        ret["changes"]["policies"] = f"Policies {','.join(new_policies)} attached to user '{username}'"
+  else:
+    ret["result"] = True
+    ret["changes"]["policies"] = f"All Policies were already attached to user '{username}'"
 
-  if "service_accounts" in data:
-    current_service_account_list = _get_existing_service_accounts(ma, name)
-    for account_name, account_data in data["service_accounts"].items():
-      if not ("access_key" in account_data and "secret_key" in account_data):
-        raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
+  return ret
 
-      if _existing_service_account(current_service_account_list, account_data):
-        ret["result"] = True and ret["result"]
-        ret["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
-      else:
-        if __opts__["test"]:
-          ret["changes"][f"svsacct_{account_name}"] = f"service account {account_name} for user {name} would be created"
-        else:
-          rd = ma.add_service_account(access_key=account_data['access_key'], secret_key=account_data['secret_key'], name=account_name, targetUser=name)
-          if _verify_service_account(rd, account_data):
-            ret["result"] = True and ret["result"]
-            ret["changes"][f"svsacct_{account_name}"] = f"Created service account {account_name} for user {name}"
-          else:
-            raise SaltConfigurationError(f"Something went wrong while configuring service account {account_name} for user {name}")
 
+def user_svcacct_present(name, username, svcacct, access_key, secret_key):
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+
+  ma = __minio_admin()
+  current_service_account_list = _get_existing_service_accounts(ma, username)
+  if _existing_service_account(current_service_account_list, access_key):
+    ret["result"] = True
+    ret["changes"][f"svsacct_{svcacct}"] = f"Service account {svcacct}  with {access_key} for user {username} already exists"
+    return ret
+
+  if __opts__["test"]:
+    ret["changes"][f"svsacct_{svcacct}"] = f"service account {svcacct} for user {username} would be created"
+  else:
+    rd = ma.add_service_account(access_key=access_key, secret_key=secret_key, name=svcacct, targetUser=username)
+    if _verify_service_account(rd, access_key, secret_key):
+      ret["result"] = True
+      ret["changes"][f"svsacct_{svcacct}"] = f"Created service account {svcacct} for user {username}"
+    else:
+      raise SaltConfigurationError(f"Something went wrong while configuring service account {svcacct} for user {username}")
   return ret
 
 
