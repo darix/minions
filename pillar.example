@@ -11,10 +11,47 @@ minio:
     volumes:       "https://minio{1..3}.example.com:{{ api_port }}/var/lib/minio/clustered/{1..4}"
 
   config:
-    key: value
-    key2:
-      - list
-      - list
+    callhome:
+      enable: 'off'
+      frequency: 24h
+    drive:
+      max_timeout: 30s
+    site:
+      name: homies
+      region: '{{ location }}'
+    api:
+      requests_max: 0
+      cluster_deadline: 10s
+      cors_allow_origin: '*'
+      remote_transport_deadline: 2h
+      list_quorum: strict
+      replication_priority: auto
+      replication_max_workers: 500
+      replication_max_lrg_workers: 10
+      transition_workers: 100
+      stale_uploads_cleanup_interval: 6h
+      stale_uploads_expiry: 24h
+      delete_cleanup_interval: 5m
+      odirect: 'on'
+      gzip_objects: 'off'
+      root_access:  'on'
+      sync_events: 'off'
+    scanner:
+      speed: default
+      alert_excess_versions: 100
+      alert_excess_folders: 50000
+    batch:
+      replication_workers_wait: 0ms
+      keyrotation_workers_wait: 0ms
+      expiration_workers_wait: 0ms
+    browser:
+      hsts_seconds: 86400
+      hsts_include_subdomains: 'off'
+      hsts_preload: 'off'
+      referrer_policy: 'strict-origin-when-cross-origin'
+    ilm:
+      transition_workers: 100
+      expiration_workers: 100
 
 {%- set restic_hosts_for_buckets     = [ "fortress", "tron", "octane", "pdp11" ] %}
 {%- set pgbackrest_hosts_for_buckets = [ "fortress", "boxie" ] %}
@@ -44,23 +81,51 @@ minio:
 
   users:
     {%- for hostname in pgbackrest_hosts_for_buckets %}
-    pgbackrest_{{ hostname }}_append_only:
+
+    {%- set username_append_only      = "pgbackrest_" ~ hostname ~ "_append_only" %}
+    {%- set username_full_permissions = "pgbackrest_" ~ hostname ~ "_full_permissions" %}
+
+    {{ username_append_only }}:
       policies:
         - pgbackrest_{{ hostname }}_append_only
+      password: {{ "minio/" ~ username_append_only ~ "/password" | gopass }}
+      service_accounts:
+        {{ username_append_only }}:
+          access_key: {{ "minio/" ~ username_append_only ~ "/access_key" | gopass }}
+          secret_key: {{ "minio/" ~ username_append_only ~ "/secret_key" | gopass }}
 
-    pgbackrest_{{ hostname }}_full_permissions:
+    {{ username_full_permissions }}:
       policies:
         - pgbackrest_{{ hostname }}_full_permissions
+      password: {{ "minio/" ~ username_full_permissions ~ "/password" | gopass }}
+      service_accounts:
+        {{ username_append_only }}:
+          access_key: {{ "minio/" ~ username_full_permissions ~ "/access_key" | gopass }}
+          secret_key: {{ "minio/" ~ username_full_permissions ~ "/secret_key" | gopass }}
     {%- endfor %}
 
     {%- for hostname in restic_hosts_for_buckets %}
-    restic_{{ hostname }}_append_only:
+
+    {%- set username_append_only      = "restic_" ~ hostname ~ "_append_only" %}
+    {%- set username_full_permissions = "restic_" ~ hostname ~ "_full_permissions" %}
+
+    { username_append_only }}:
       policies:
         - restic_{{ hostname }}_append_only
+      password: {{ "minio/" ~ username_append_only ~ "/password" | gopass }}
+      service_accounts:
+        {{ username_append_only }}:
+          access_key: {{ "minio/" ~ username_append_only ~ "/access_key" | gopass }}
+          secret_key: {{ "minio/" ~ username_append_only ~ "/secret_key" | gopass }}
 
-    restic_{{ hostname }}_full_permissions:
+    {{ username_full_permissions }}:
       policies:
         - restic_{{ hostname }}_full_permissions
+      password: {{ "minio/" ~ username_full_permissions ~ "/password" | gopass }}
+      service_accounts:
+        {{ username_append_only }}:
+          access_key: {{ "minio/" ~ username_full_permissions ~ "/access_key" | gopass }}
+          secret_key: {{ "minio/" ~ username_full_permissions ~ "/secret_key" | gopass }}
     {%- endfor %}
 
   buckets:
