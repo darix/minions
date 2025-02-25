@@ -7,16 +7,13 @@
 import json
 import logging
 import os
-import random
-import string
-import tempfile
 import re
-
-import minio as pyminio
-
-from salt.exceptions import SaltConfigurationError, SaltRenderError
+import tempfile
 from urllib.parse import urlparse
 
+from salt.exceptions import SaltConfigurationError, SaltRenderError
+
+import minio as pyminio
 
 minion_client_binary    = "/usr/bin/minio-client"
 salt_minion_config_dir  = "/etc/salt/minio-client/"
@@ -407,10 +404,6 @@ def policy_missing(name):
     return_data["comment"] = f"Policy {name} is already missing"
 
   return return_data
-
-
-def _gimme_random_string(length=20):
-  return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def _filter_existing_policies(current_policies_string, new_policies_list=[]):
