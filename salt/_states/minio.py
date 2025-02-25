@@ -391,11 +391,20 @@ def policy_missing(name):
   ma = __minio_admin()
   policy_list = __parse_json_string(ma.policy_list())
 
-  if name in policy_list:
+  if __policy_exists(ma, name):
+    if __opts__["test"]:
+      return_data["comment"] = f"Policy {name} would be removed"
+      return return_data
     ma.policy_remove(name)
-    return_data["changes"] = {"what": f"Policy {name} removed"}
+    if __policy_exists(ma, name):
+      return_data["result"] = False
+      return_data["comment"] = f"Policy {name} failed to be removed"
+    else:
+      return_data["result"] = True
+      return_data["changes"]["policy_missing"] = f"Policy {name} removed"
   else:
-    return_data["changes"] = {"what": f"Policy {name} is already missing"}
+    return_data["result"] = True
+    return_data["comment"] = f"Policy {name} is already missing"
 
   return return_data
 
