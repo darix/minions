@@ -357,7 +357,7 @@ def policy_present(name, data={}):
 
   if __policy_exists(ma, name):
     # TODO: implement update mode
-    retun_data["result"] = True
+    ret["result"] = True
     ret["comment"] = f"Policy {name} already there"
   else:
     if not data["type"] in __policy_templates:
@@ -479,10 +479,10 @@ def user_present(name, data={}):
         ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} would be attached to user '{name}'"
       else:
         if ma.attach_policy(policies=new_policies, user=name):
-          ret["result"] = True & & ret["result"]
+          ret["result"] = True and ret["result"]
           ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} attached to user '{name}'"
     else:
-      ret["result"] = True & & ret["result"]
+      ret["result"] = True and ret["result"]
       ret["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
 
   if "service_accounts" in data:
@@ -492,7 +492,7 @@ def user_present(name, data={}):
         raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
 
       if _existing_service_account(current_service_account_list, account_data):
-        ret["result"] = True & & ret["result"]
+        ret["result"] = True and ret["result"]
         ret["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
       else:
         if __opts__["test"]:
@@ -500,7 +500,7 @@ def user_present(name, data={}):
         else:
           rd = ma.add_service_account(access_key=account_data['access_key'], secret_key=account_data['secret_key'], name=account_name, targetUser=name)
           if _verify_service_account(rd, account_data):
-            ret["result"] = True & & ret["result"]
+            ret["result"] = True and ret["result"]
             ret["changes"][f"svsacct_{account_name}"] = f"Created service account {account_name} for user {name}"
           else:
             raise SaltConfigurationError(f"Something went wrong while configuring service account {account_name} for user {name}")
