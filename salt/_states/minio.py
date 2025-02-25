@@ -326,10 +326,21 @@ def bucket_missing(name):
   found = mc.bucket_exists(name)
 
   if found:
+    if __opts__["test"]:
+      return_data["comment"] = f"Bucket {name} would be removed"
+      return return_data
+
     mc.remove_bucket(name)
+
+    if mc.bucket_exists(name):
+      return_data["result"] = False
+      return_data["comment"] = f"Bucket {name} failed to be removed"
+
+    return_data["result"] = True
     return_data["changes"] = {"what": f"Bucket {name} removed"}
   else:
-    return_data["changes"] = {"what": f"Bucket {name} already missing"}
+    return_data["result"] = True
+    return_data["comment"] = "Bucket {name} was already missing"
 
   return return_data
 
