@@ -136,12 +136,10 @@ def run():
               params = [
                   {'username': user_name},
                   {'svcacct': svcacct},
-                  {'access_key', svc_data["access_key"]},
-                  {'secret_key', svc_data["secret_key"]},
+                  {'access_key': svc_data["access_key"]},
+                  {'secret_key': svc_data["secret_key"]},
                   {'require': [user_key]},
               ]
-
-              # log.error(f"muahaha:{user_service_account_key}: {params}")
 
               config[user_service_account_key] = {
                 "minio.user_svcacct_present": params

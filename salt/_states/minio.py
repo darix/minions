@@ -469,11 +469,13 @@ def user_present(name, password):
   return ret
 
 
-def user_policies_present(name, username, assigned_policies=[]):
+def user_policies_present(name, username, assigned_policies):
   ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
   ma = __minio_admin()
   user_list = __parse_json_string(ma.user_list())
   user_data = user_list[username]
+
+  # TODO: we should probably check if assigned_policies is a list
 
   new_policies = assigned_policies
   if "policyName" in user_data:
@@ -488,7 +490,7 @@ def user_policies_present(name, username, assigned_policies=[]):
         ret["changes"]["policies"] = f"Policies {','.join(new_policies)} attached to user '{username}'"
   else:
     ret["result"] = True
-    ret["changes"]["policies"] = f"All Policies were already attached to user '{username}'"
+    ret["comment"] = f"All Policies were already attached to user '{username}'"
 
   return ret
 
@@ -500,7 +502,7 @@ def user_svcacct_present(name, username, svcacct, access_key, secret_key):
   current_service_account_list = _get_existing_service_accounts(ma, username)
   if _existing_service_account(current_service_account_list, access_key):
     ret["result"] = True
-    ret["changes"][f"svsacct_{svcacct}"] = f"Service account {svcacct}  with {access_key} for user {username} already exists"
+    ret["comment"] = f"Service account {svcacct}  with {access_key} for user {username} already exists"
     return ret
 
   if __opts__["test"]:
