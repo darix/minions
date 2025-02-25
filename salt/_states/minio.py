@@ -233,7 +233,7 @@ def __minio_admin():
 
 
 def _parse_site_setting(input_string):
-  section_name, section_data_string = input_string.split(' ', 1)
+  section, section_data_string = input_string.split(' ', 1)
   settings = {}
   is_value = False
   key = None
@@ -248,35 +248,45 @@ def _parse_site_setting(input_string):
     else:
       key = chunk
       is_value = True
-  return section_name, settings
+  return section, settings
 
 
-def _is_site_config_set(ma, section_name, section_data):
-  set_section_name, set_section_data = _parse_site_setting(ma.config_get(section_name))
+def _is_site_config_set(ma, section, section_data):
+  set_section, set_section_data = _parse_site_setting(ma.config_get(section))
+  log.error(f"section: {section}, section_data: {section_data}, set_section_data: {set_section_data}")
   for k, v in section_data.items():
     try:
-      if set_section_data[k] != v:
+      if set_section_data[k] != str(v):
+        log.error(f"Site_config: Mismatch for section: {section}, key: {k}, value: {set_section_data[k]} {section_data[k]}")
         return False
     except KeyError as e:
       pass
   return True
 
 
-def site_config(name):
+def site_config(name, section, config):
   ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
-  if "minio" in __pillar__ and "config" in __pillar__["minio"]:
-    ma = __minio_admin()
 
-    for section_name, section_data in __pillar__["minio"]["config"].items():
-      try:
-        ma.config_set(section_name, section_data)
-        if _is_site_config_set(ma, section_name, section_data):
-          ret["changes"][f"site_setting_{section_name}"] = f"successfully set settings for {section_name}"
-      except pyminio.error.MinioAdminException as e:
-        exception_data = __parse_json_string(e._body)
-        message = exception_data["Message"]
-        ret["result"] = False
-        ret["changes"][f"site_setting_{section_name}"] = f"Failed to set all settings for {section_name}: {message}"
+  ma = __minio_admin()
+
+  try:
+    if _is_site_config_set(ma, section, config):
+      ret['result'] = True
+      ret['comment'] = f"Site config set for section {section} is already correct."
+      return ret
+
+    ma.config_set(section, config)
+    if _is_site_config_set(ma, section, config):
+      ret['result'] = True
+      ret["changes"][f"site_setting_{section}"] = f"successfully set settings for {section}"
+    else:
+      ret['result'] = False
+      ret["comment"] = f"failed to set all settings for {section}"
+  except pyminio.error.MinioAdminException as e:
+    exception_data = __parse_json_string(e._body)
+    message = exception_data["Message"]
+    ret["result"] = False
+    ret["changes"][f"site_setting_{section}"] = f"Failed to set all settings for {section}: {message}"
 
   return ret
 

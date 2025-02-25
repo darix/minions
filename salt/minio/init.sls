@@ -66,11 +66,14 @@ def run():
     minio_settings_deps = ["salt_minio_client_config", "minio_service"]
 
     if "config" in minio_pillar:
-      config["deploy_site_config"] = {
-        "minio.site_config": [
-          {"require": minio_settings_deps},
-        ]
-      }
+      for config_section, config_data in minio_pillar["config"].items():
+        config[f"deploy_site_config_{config_section}"] = {
+          "minio.site_config": [
+            {"section": config_section},
+            {"config": config_data},
+            {"require": minio_settings_deps},
+          ]
+        }
 
     policies_list = []
     policies_state_list = []
