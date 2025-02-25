@@ -293,8 +293,12 @@ def bucket_present(name, data={}):
 
   if found:
     # TODO: implement update mode for settings
-    return_data["changes"] = {"what": f"Bucket {name} already there"}
+    return_data["result"] = True
+    return_data["comment"] = f"Bucket {name} already there"
   else:
+    if __opts__["test"]:
+      return_data["comment"] = f"Bucket {name} would be created"
+      return return_data
     try:
       if not ("minio" in __pillar__ and "location" in __pillar__["minio"]):
         raise SaltConfigurationError("Missing location in minio pillar")
@@ -303,7 +307,12 @@ def bucket_present(name, data={}):
       if "locking" in data:
         locking = data["locking"]
       mc.make_bucket(bucket_name=name, location=location, object_lock=locking)
-      return_data["changes"] = {"what": f"Bucket {name} was missing and is now added"}
+      if mc.bucket_exists(name):
+        return_data["result"] = True
+        return_data["changes"] = {"what": f"Bucket {name} was missing and is now added"}
+      else:
+        return_data["result"] = False
+        return_data["comment"] = f"Bucket {name} failed to be created"
     except (ValueError) as e:
       raise e
 
