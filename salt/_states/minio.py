@@ -309,7 +309,7 @@ def bucket_present(name, data={}):
       mc.make_bucket(bucket_name=name, location=location, object_lock=locking)
       if mc.bucket_exists(name):
         return_data["result"] = True
-        return_data["changes"] = {"what": f"Bucket {name} was missing and is now added"}
+        return_data["changes"]["bucket_present"] = f"Bucket {name} was created successfully"
       else:
         return_data["result"] = False
         return_data["comment"] = f"Bucket {name} failed to be created"
@@ -337,7 +337,7 @@ def bucket_missing(name):
       return_data["comment"] = f"Bucket {name} failed to be removed"
 
     return_data["result"] = True
-    return_data["changes"] = {"what": f"Bucket {name} removed"}
+    return_data["changes"]["bucket_missing"] = f"Bucket {name} removed"
   else:
     return_data["result"] = True
     return_data["comment"] = "Bucket {name} was already missing"
@@ -345,15 +345,22 @@ def bucket_missing(name):
   return return_data
 
 
+def __policy_list(ma):
+  return __parse_json_string(ma.policy_list())
+
+def __policy_exists(ma, name):
+  return name in __policy_list(ma)
+
 def policy_present(name, data={}):
   return_data = {'name': name, 'result': None, 'changes': {},  'comment': ""}
 
   ma = __minio_admin()
-  policy_list = __parse_json_string(ma.policy_list())
+  policy_list = __policy_list(ma)
 
-  if name in policy_list:
+  if __policy_exists(ma, name):
     # TODO: implement update mode
-    return_data["changes"] = {"what": f"Policy {name} already there"}
+    retun_data["result"] = True
+    return_data["comment"] = f"Policy {name} already there"
   else:
     if not data["type"] in __policy_templates:
       raise SaltConfigurationError(f'No template for policy type {data["type"]}')
@@ -366,13 +373,14 @@ def policy_present(name, data={}):
         policy_file.write(policy_string)
         policy_file.close()
         ma.policy_add(name, policy_file.name)
+        if __policy_exists(ma, name):
+          return_data["result"] = True
+          return_data["changes"]["policy_present"] = f"Policy {name} created successfully"
       except (pyminio.error.MinioAdminException) as e:
         log.error(f"Adding policy {name} failed: {e} {policy_string}")
         raise
       finally:
         os.remove(policy_file.name)
-
-    return_data["changes"] = {"what": f"Policy {name} is missing"}
 
   return return_data
 
