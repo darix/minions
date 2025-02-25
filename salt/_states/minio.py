@@ -187,8 +187,8 @@ __policy_templates = {
 def __parse_json_string(data):
   try:
     log.error(f"class: {data.__class__()} data: {data}")
-    return_data = json.loads(data)
-    return return_data
+    ret = json.loads(data)
+    return ret
   except (json.decoder.JSONDecodeError) as e:
     message = f"Failed to parse json string: {e}: {data}"
     log.error(message)
@@ -197,8 +197,8 @@ def __parse_json_string(data):
 
 def __parse_json_file(filename):
   try:
-    return_data = json.load(open(filename))
-    return return_data
+    ret = json.load(open(filename))
+    return ret
   except (json.decoder.JSONDecodeError) as e:
     message = f"Failed to parse json string from filename: {e}"
     log.error(message)
@@ -263,7 +263,7 @@ def _is_site_config_set(ma, section_name, section_data):
 
 
 def site_config(name):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
   if "minio" in __pillar__ and "config" in __pillar__["minio"]:
     ma = __minio_admin()
 
@@ -271,30 +271,30 @@ def site_config(name):
       try:
         ma.config_set(section_name, section_data)
         if _is_site_config_set(ma, section_name, section_data):
-          return_data["changes"][f"site_setting_{section_name}"] = f"successfully set settings for {section_name}"
+          ret["changes"][f"site_setting_{section_name}"] = f"successfully set settings for {section_name}"
       except pyminio.error.MinioAdminException as e:
         exception_data = __parse_json_string(e._body)
         message = exception_data["Message"]
-        return_data["result"] = False
-        return_data["changes"][f"site_setting_{section_name}"] = f"Failed to set all settings for {section_name}: {message}"
+        ret["result"] = False
+        ret["changes"][f"site_setting_{section_name}"] = f"Failed to set all settings for {section_name}: {message}"
 
-  return return_data
+  return ret
 
 
 def bucket_present(name, data={}):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   mc = __minio_client()
   found = mc.bucket_exists(name)
 
   if found:
     # TODO: implement update mode for settings
-    return_data["result"] = True
-    return_data["comment"] = f"Bucket {name} already there"
+    ret["result"] = True
+    ret["comment"] = f"Bucket {name} already there"
   else:
     if __opts__["test"]:
-      return_data["comment"] = f"Bucket {name} would be created"
-      return return_data
+      ret["comment"] = f"Bucket {name} would be created"
+      return ret
     try:
       if not ("minio" in __pillar__ and "location" in __pillar__["minio"]):
         raise SaltConfigurationError("Missing location in minio pillar")
@@ -304,41 +304,41 @@ def bucket_present(name, data={}):
         locking = data["locking"]
       mc.make_bucket(bucket_name=name, location=location, object_lock=locking)
       if mc.bucket_exists(name):
-        return_data["result"] = True
-        return_data["changes"]["bucket_present"] = f"Bucket {name} was created successfully"
+        ret["result"] = True
+        ret["changes"]["bucket_present"] = f"Bucket {name} was created successfully"
       else:
-        return_data["result"] = False
-        return_data["comment"] = f"Bucket {name} failed to be created"
+        ret["result"] = False
+        ret["comment"] = f"Bucket {name} failed to be created"
     except (ValueError) as e:
       raise e
 
-  return return_data
+  return ret
 
 
 def bucket_missing(name):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   mc = __minio_client()
   found = mc.bucket_exists(name)
 
   if found:
     if __opts__["test"]:
-      return_data["comment"] = f"Bucket {name} would be removed"
-      return return_data
+      ret["comment"] = f"Bucket {name} would be removed"
+      return ret
 
     mc.remove_bucket(name)
 
     if mc.bucket_exists(name):
-      return_data["result"] = False
-      return_data["comment"] = f"Bucket {name} failed to be removed"
+      ret["result"] = False
+      ret["comment"] = f"Bucket {name} failed to be removed"
 
-    return_data["result"] = True
-    return_data["changes"]["bucket_missing"] = f"Bucket {name} removed"
+    ret["result"] = True
+    ret["changes"]["bucket_missing"] = f"Bucket {name} removed"
   else:
-    return_data["result"] = True
-    return_data["comment"] = "Bucket {name} was already missing"
+    ret["result"] = True
+    ret["comment"] = "Bucket {name} was already missing"
 
-  return return_data
+  return ret
 
 
 def __policy_list(ma):
@@ -350,7 +350,7 @@ def __policy_exists(ma, name):
 
 
 def policy_present(name, data={}):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   ma = __minio_admin()
   policy_list = __policy_list(ma)
@@ -358,7 +358,7 @@ def policy_present(name, data={}):
   if __policy_exists(ma, name):
     # TODO: implement update mode
     retun_data["result"] = True
-    return_data["comment"] = f"Policy {name} already there"
+    ret["comment"] = f"Policy {name} already there"
   else:
     if not data["type"] in __policy_templates:
       raise SaltConfigurationError(f'No template for policy type {data["type"]}')
@@ -372,39 +372,39 @@ def policy_present(name, data={}):
         policy_file.close()
         ma.policy_add(name, policy_file.name)
         if __policy_exists(ma, name):
-          return_data["result"] = True
-          return_data["changes"]["policy_present"] = f"Policy {name} created successfully"
+          ret["result"] = True
+          ret["changes"]["policy_present"] = f"Policy {name} created successfully"
       except (pyminio.error.MinioAdminException) as e:
         log.error(f"Adding policy {name} failed: {e} {policy_string}")
         raise
       finally:
         os.remove(policy_file.name)
 
-  return return_data
+  return ret
 
 
 def policy_missing(name):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   ma = __minio_admin()
   policy_list = __parse_json_string(ma.policy_list())
 
   if __policy_exists(ma, name):
     if __opts__["test"]:
-      return_data["comment"] = f"Policy {name} would be removed"
-      return return_data
+      ret["comment"] = f"Policy {name} would be removed"
+      return ret
     ma.policy_remove(name)
     if __policy_exists(ma, name):
-      return_data["result"] = False
-      return_data["comment"] = f"Policy {name} failed to be removed"
+      ret["result"] = False
+      ret["comment"] = f"Policy {name} failed to be removed"
     else:
-      return_data["result"] = True
-      return_data["changes"]["policy_missing"] = f"Policy {name} removed"
+      ret["result"] = True
+      ret["changes"]["policy_missing"] = f"Policy {name} removed"
   else:
-    return_data["result"] = True
-    return_data["comment"] = f"Policy {name} is already missing"
+    ret["result"] = True
+    ret["comment"] = f"Policy {name} is already missing"
 
-  return return_data
+  return ret
 
 
 def _filter_existing_policies(current_policies_string, new_policies_list=[]):
@@ -433,8 +433,8 @@ def _existing_service_account(current_service_account_list, account_data):
   return False
 
 
-def _verify_service_account(return_data, account_data):
-  parsed_data = __parse_json_string(return_data)
+def _verify_service_account(ret, account_data):
+  parsed_data = __parse_json_string(ret)
   return (parsed_data["credentials"]["accessKey"] == account_data["access_key"] and parsed_data["credentials"]["secretKey"] == account_data["secret_key"])
 
 
@@ -444,31 +444,31 @@ def _verify_user_exists(name, ma):
 
 
 def user_present(name, data={}):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
 
   ma = __minio_admin()
   user_list = __parse_json_string(ma.user_list())
 
   if _verify_user_exists(name, ma):
     # TODO: implement update mode
-    return_data["result"] = True
-    return_data["comment"] = f"User '{name}' already there"
+    ret["result"] = True
+    ret["comment"] = f"User '{name}' already there"
     user_data = user_list[name]
   else:
     user_data = {}
     if not ("password" in data):
       raise SaltConfigurationError(f"missing password for user '{name}'")
     if __opts__["test"]:
-      return_data["comment"] = f"User '{name}' would be created"
+      ret["comment"] = f"User '{name}' would be created"
     else:
       ma.user_add(name, data["password"])
       if _verify_user_exists(name, ma):
-        return_data["result"] = True
-        return_data["changes"]["user"] = f"User '{name}' already created"
+        ret["result"] = True
+        ret["changes"]["user"] = f"User '{name}' already created"
       else:
-        return_data["result"] = False
-        return_data["comment"] = f"Something went wrong when trying to create user {name}"
-        return return_data
+        ret["result"] = False
+        ret["comment"] = f"Something went wrong when trying to create user {name}"
+        return ret
 
   if "policies" in data:
     new_policies = data["policies"]
@@ -476,14 +476,14 @@ def user_present(name, data={}):
       new_policies = _filter_existing_policies(user_data["policyName"], new_policies)
     if len(new_policies) > 0:
       if __opts__["test"]:
-        return_data["changes"]["policies"] = f"Policies {','.join(data['policies'])} would be attached to user '{name}'"
+        ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} would be attached to user '{name}'"
       else:
         if ma.attach_policy(policies=new_policies, user=name):
-          return_data["result"] = True & & return_data["result"]
-          return_data["changes"]["policies"] = f"Policies {','.join(data['policies'])} attached to user '{name}'"
+          ret["result"] = True & & ret["result"]
+          ret["changes"]["policies"] = f"Policies {','.join(data['policies'])} attached to user '{name}'"
     else:
-      return_data["result"] = True & & return_data["result"]
-      return_data["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
+      ret["result"] = True & & ret["result"]
+      ret["changes"]["policies"] = f"All Policies were already attached to user '{name}'"
 
   if "service_accounts" in data:
     current_service_account_list = _get_existing_service_accounts(ma, name)
@@ -492,39 +492,39 @@ def user_present(name, data={}):
         raise SaltConfigurationError(f"missing data for service account '{account_name}' for user '{name}' ")
 
       if _existing_service_account(current_service_account_list, account_data):
-        return_data["result"] = True & & return_data["result"]
-        return_data["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
+        ret["result"] = True & & ret["result"]
+        ret["changes"][f"svsacct_{account_name}"] = f"Service account {account_name}  with {account_data['access_key']} for user {name} already exists"
       else:
         if __opts__["test"]:
-          return_data["changes"][f"svsacct_{account_name}"] = f"service account {account_name} for user {name} would be created"
+          ret["changes"][f"svsacct_{account_name}"] = f"service account {account_name} for user {name} would be created"
         else:
           rd = ma.add_service_account(access_key=account_data['access_key'], secret_key=account_data['secret_key'], name=account_name, targetUser=name)
           if _verify_service_account(rd, account_data):
-            return_data["result"] = True & & return_data["result"]
-            return_data["changes"][f"svsacct_{account_name}"] = f"Created service account {account_name} for user {name}"
+            ret["result"] = True & & ret["result"]
+            ret["changes"][f"svsacct_{account_name}"] = f"Created service account {account_name} for user {name}"
           else:
             raise SaltConfigurationError(f"Something went wrong while configuring service account {account_name} for user {name}")
 
-  return return_data
+  return ret
 
 
 def user_missing(name):
-  return_data = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
+  ret = {'name': name, 'result': None, 'changes': {}, 'comment': ""}
   ma = __minio_admin()
 
   try:
     if __opts__["test"]:
-      return_data["comment"] = f"User '{name}' would be removed"
-      return return_data
+      ret["comment"] = f"User '{name}' would be removed"
+      return ret
 
     ma.user_remove(name)
-    return_data["result"] = True
-    return_data["changes"]["user_missing"] = f"User '{name}' was removed"
+    ret["result"] = True
+    ret["changes"]["user_missing"] = f"User '{name}' was removed"
   except (pyminio.error.MinioAdminException) as e:
     if e._code == '404':
-      return_data["result"] = True
-      return_data["comment"] = f"User '{name}' already missing"
+      ret["result"] = True
+      ret["comment"] = f"User '{name}' already missing"
     else:
       raise e
 
-  return return_data
+  return ret
