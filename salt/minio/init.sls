@@ -4,6 +4,24 @@ from salt.exceptions import SaltConfigurationError, SaltRenderError
 import logging
 log = logging.getLogger(__name__)
 
+from urllib.parse import urlparse
+import re
+
+def __subdir_list():
+  ret = []
+  up=urlparse(__pillar__["minio"]["environment"]["volumes"])
+  path_re=re.compile(r'^(?P<basedir>\S+)\{(?P<start>\d+)\.{2,3}(?P<end>\d+)\}$')
+  mo=path_re.search(up.path)
+  ret.append(mo.group('basedir'))
+
+  start=int(mo.group('start'))
+  end=int(mo.group('end'))
+  i=start
+  while i<=end:
+    ret.append("{mo.group('basedir')}/{i}")
+    i=i+1
+  return ret
+
 def run():
   config = {}
   if not("minio" in __pillar__):
@@ -31,6 +49,21 @@ def run():
     }
 
     service_deps = ["minio_config"]
+    i=0
+    for dir in __subdir_list():
+      dir_key = f"minio_cluster_dir_{i}"
+      service_deps.append(dir_key)
+      config[dir_key] = {
+        "file.directory": [
+          {"name": dir},
+          {"user": "minio"},
+          {"group": "minio"},
+          {"mode": "0750"},
+          {"require": ["minio_packages"]},
+
+        ]
+      }
+
     config["minio_service"] = {
       "service.running": [
         {"name": "minio.service"},
