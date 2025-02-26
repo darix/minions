@@ -94,6 +94,27 @@ def run():
       ]
     }
 
+    config["root_minio_client_config_dir"] = {
+      "file.directory": [
+        {"name": "/root/.minio-client"},
+        {"user": "root"},
+        {"group": "root"},
+        {"mode": "0750"},
+      ]
+    }
+
+    config["root_minio_client_config"] = {
+      "file.managed": [
+        {"name": "/root/.minio-client/config.json"},
+        {"user": "root"},
+        {"group": "root"},
+        {"mode": "0640"},
+        {"template": "jinja"},
+        {"require": ["root_minio_client_config_dir"] },
+        {"source": "salt://minio/files/etc/salt/minio-client/config.json.j2"},
+      ]
+    }
+
 
     minio_settings_deps = ["salt_minio_client_config", "minio_service"]
 
