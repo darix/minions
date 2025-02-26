@@ -1,12 +1,12 @@
 #!py
 from salt.exceptions import SaltConfigurationError
 
-
 def run():
   config = {}
   if not ("minio" in __pillar__):
     return config
 
+  minio_pillar = __pillar__["minio"]
   minio_settings_deps = ["salt_minio_client_config", "minio_service"]
 
   if "config" in minio_pillar:
@@ -98,5 +98,4 @@ def run():
         ]
       }
 
-
-return config
+  return config

@@ -8,8 +8,11 @@ def __subdir_list():
   ret = []
   up=urlparse(__pillar__["minio"]["environment"]["volumes"])
   path_re=re.compile(r'^(?P<basedir>\S+)\{(?P<start>\d+)\.{2,3}(?P<end>\d+)\}$')
-  mo=path_re.search(up.path)
-  ret.append(mo.group('basedir'))
+  mo=path_re.match(up.path)
+  if mo:
+     ret.append(mo.group('basedir'))
+  else:
+     ret.append(up.path)
 
   # start=int(mo.group('start'))
   # end=int(mo.group('end'))
