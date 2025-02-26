@@ -14,12 +14,12 @@ def __subdir_list():
   mo=path_re.search(up.path)
   ret.append(mo.group('basedir'))
 
-  start=int(mo.group('start'))
-  end=int(mo.group('end'))
-  i=start
-  while i<=end:
-    ret.append("{mo.group('basedir')}/{i}")
-    i=i+1
+  # start=int(mo.group('start'))
+  # end=int(mo.group('end'))
+  # i=start
+  # while i<=end:
+  #   ret.append(f"{mo.group('basedir')}{i}")
+  #   i=i+1
   return ret
 
 def run():
@@ -60,7 +60,6 @@ def run():
           {"group": "minio"},
           {"mode": "0750"},
           {"require": ["minio_packages"]},
-
         ]
       }
 
