@@ -1,3 +1,4 @@
+#!py
 #
 # minions
 #
@@ -17,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-#!py
 from salt.exceptions import SaltConfigurationError
 
 from urllib.parse import urlparse
