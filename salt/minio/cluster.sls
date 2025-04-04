@@ -50,7 +50,7 @@ def run():
 
   config["minio_packages"] = {
     "pkg.installed": [
-      {"pkgs": ["rclone", "minio", "minio-client"]},
+      {"pkgs": ["rclone", "minio", "minio-client", "python311-minio", "python311-salt"]},
     ]
   }
 
