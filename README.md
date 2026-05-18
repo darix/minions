@@ -9,10 +9,10 @@ Requires [python-minio][0] with the patch for [service accounts per user][1]
 
 ## cfgmgmt-template integration
 
-if you are using our [cfgmgmt-template](https://github.com/darix/cfgmgmt-template) as a starting point the saltmaster you can simplify the setup with:
+if you are using our [cfgmgmt-template](https://codeberg.org/salted-geeko/cfgmgmt-template) as a starting point the saltmaster you can simplify the setup with:
 
 ```
-git submodule add https://github.com/darix/minions formulas/minions
+git submodule add https://codeberg.org/salted-geeko/minions formulas/minions
 ln -s /srv/cfgmgmt/formulas/minions/config/enable_minions.conf /etc/salt/master.d/
 systemctl restart saltmaster
 ```
